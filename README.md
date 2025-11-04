@@ -1,5 +1,6 @@
 # 🌐 Telegram 群组内容监控系统 - TelScan
-[![公众号](https://img.shields.io/badge/公众号-白昼信安-da282a)](https://your-wechat-link.com) [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)  [![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)](https://flask.palletsprojects.com/)
+[![公众号](https://img.shields.io/badge/公众号-白昼信安-da282a)](https://your-wechat-link.com) [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)  [![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)](https://flask.palletsprojects.com/)[![Version](https://img.shields.io/badge/Version-2.0-orange.svg)](https://github.com/wxwhhh/TelScan)
+[![Update](https://img.shields.io/badge/Update-2025.11.04-brightgreen.svg)](https://github.com/wxwhhh/TelScan)
 
 #### 1、平台介绍
 平台调用telegram API对已加入的群组、频道或者是公开的群组、频道内容进行实时监控，然后web展示以及钉钉、企业微信通知。
@@ -32,7 +33,7 @@
 <img width="1275" height="369" alt="10" src="https://github.com/user-attachments/assets/f04f7fc5-7e88-4a7c-8c42-c6a42f094e86" />
 <img width="554" height="143" alt="11" src="https://github.com/user-attachments/assets/cdf68675-06f1-4f35-9789-d262b1f46bc8" />
 
-##### 🧐 搭建教程
+# 🧐 搭建教程
 - 前往 [Telegram 官方](https://my.telegram.org) 注册  
 先去注册一个telegram API，网上有教程搜一下，此外如果注册api一直报ERROR的话，狂点**创建应用程序**按钮即可成功。
 环境使用的是python和mysql环境
@@ -48,6 +49,7 @@
 `cd TelScan`
 
 此外要使用图片关键词识别的话，要单独安装Tesseract OCR，命令如下:
+
 Ubuntu/Debian系统：
 ```bash
 sudo apt update
