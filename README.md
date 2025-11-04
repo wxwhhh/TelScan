@@ -2,7 +2,9 @@
 [![公众号](https://img.shields.io/badge/公众号-白昼信安-da282a)](https://your-wechat-link.com) [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)  [![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)](https://flask.palletsprojects.com/)
 
 #### 1、平台介绍
-平台调用telegram API对已加入的群组、频道或者是公开的群组、频道内容进行实时监控，然后web展示以及钉钉通知。
+平台调用telegram API对已加入的群组、频道或者是公开的群组、频道内容进行实时监控，然后web展示以及钉钉、企业微信通知。
+<img width="2553" height="1270" alt="image" src="https://github.com/user-attachments/assets/fbaa7d40-e318-43c8-ab89-03c21e5762ca" />
+
 
 #### 2、平台功能 -- 系统配置
 先进行系统配置，输入申请的API、手机号、钉钉后进行保存即可。
