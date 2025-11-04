@@ -47,6 +47,19 @@
 
 `cd TelScan`
 
+此外要使用图片关键词识别的话，要单独安装Tesseract OCR，命令如下:
+Ubuntu/Debian系统：
+```bash
+sudo apt update
+sudo apt install -y tesseract-ocr tesseract-ocr-chi-sim
+```
+
+CentOS/RHEL系统：
+```bash
+sudo yum install -y epel-release
+sudo yum install -y tesseract tesseract-langpack-chi-sim
+```
+
 第三步：启动环境  python3 app.py
 <img width="836" height="177" alt="14" src="https://github.com/user-attachments/assets/002db866-bad5-4feb-ab4d-d39b66490b16" />
 
