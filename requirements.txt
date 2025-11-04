@@ -4,3 +4,10 @@ requests
 PyMySQL
 Werkzeug
 Pillow
+waitress
+pyahocorasick
+pytesseract
+Flask-SocketIO
+python-socketio[client]
+python-dateutil
+openpyxl
