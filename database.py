@@ -46,6 +46,8 @@ class Config(db.Model):
     phone_number = db.Column(db.String(100), nullable=True)
     dingtalk_webhook = db.Column(db.String(255), nullable=True)
     dingtalk_secret = db.Column(db.String(100), nullable=True)
+    notification_type = db.Column(db.String(20), default='none')  # none/dingtalk/wecom
+    wecom_webhook = db.Column(db.String(255), nullable=True)
 
     __table_args__ = {'mysql_charset': 'utf8mb4', 'mysql_collate': 'utf8mb4_unicode_ci'}
 
@@ -104,3 +106,86 @@ class Session(db.Model):
     expiration_time = db.Column(db.DateTime, nullable=False)
 
     __table_args__ = {'mysql_charset': 'utf8mb4', 'mysql_collate': 'utf8mb4_unicode_ci'}
+
+
+def auto_upgrade_database():
+    """
+    自动升级数据库结构
+    检查并添加缺失的字段，确保数据库结构与模型定义一致
+    """
+    import pymysql
+    
+    try:
+        # 连接数据库
+        connection = pymysql.connect(
+            host=db_config['host'],
+            port=db_config['port'],
+            user=db_config['user'],
+            password=db_config['password'],
+            database=db_config['database'],
+            charset='utf8mb4'
+        )
+        
+        print("[数据库] 开始检查数据库结构...")
+        
+        with connection.cursor() as cursor:
+            # 检查 notification_type 字段是否存在
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = %s 
+                AND TABLE_NAME = 'config' 
+                AND COLUMN_NAME = 'notification_type'
+            """, (db_config['database'],))
+            
+            notification_type_exists = cursor.fetchone()[0] > 0
+            
+            # 检查 wecom_webhook 字段是否存在
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = %s 
+                AND TABLE_NAME = 'config' 
+                AND COLUMN_NAME = 'wecom_webhook'
+            """, (db_config['database'],))
+            
+            wecom_webhook_exists = cursor.fetchone()[0] > 0
+            
+            # 添加 notification_type 字段
+            if not notification_type_exists:
+                print("[数据库] → 添加字段: notification_type")
+                cursor.execute("""
+                    ALTER TABLE config 
+                    ADD COLUMN notification_type VARCHAR(20) DEFAULT 'none'
+                    AFTER dingtalk_secret
+                """)
+                print("[数据库] ✓ 字段 notification_type 添加成功")
+            
+            # 添加 wecom_webhook 字段
+            if not wecom_webhook_exists:
+                print("[数据库] → 添加字段: wecom_webhook")
+                cursor.execute("""
+                    ALTER TABLE config 
+                    ADD COLUMN wecom_webhook VARCHAR(255) NULL
+                    AFTER notification_type
+                """)
+                print("[数据库] ✓ 字段 wecom_webhook 添加成功")
+            
+            # 提交更改
+            connection.commit()
+            
+            if not notification_type_exists or not wecom_webhook_exists:
+                print("[数据库] ✓ 数据库结构升级完成")
+            else:
+                print("[数据库] ✓ 数据库结构已是最新版本")
+            
+    except pymysql.Error as e:
+        print(f"[数据库] ✗ 升级失败: {e}")
+        print(f"[数据库] 提示: 请检查数据库权限或手动运行 upgrade_db.py")
+    
+    except Exception as e:
+        print(f"[数据库] ✗ 发生错误: {e}")
+    
+    finally:
+        if 'connection' in locals():
+            connection.close()
