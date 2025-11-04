@@ -1,0 +1,1106 @@
+{% extends "layout.html" %}
+
+{% block title %}数据仪表盘{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* 仪表盘专用：覆盖 container 样式 */
+    body .container {
+        max-width: 100% !important;
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        margin-top: 1rem !important;
+    }
+    
+    /* 暗色主题下的仪表盘 */
+    body.dark-theme .container {
+        background: transparent !important;
+    }
+    
+    /* 统计卡片样式 */
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .stat-card .label {
+        color: #6c757d;
+        font-size: 14px;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+    
+    .stat-card .value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+    
+    .stat-card .change {
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .stat-card .change.positive {
+        color: #28a745;
+    }
+    
+    .stat-card .change.negative {
+        color: #dc3545;
+    }
+    
+    .stat-card .change.neutral {
+        color: #6c757d;
+    }
+    
+    /* 图表容器 */
+    .chart-row {
+        display: grid;
+        grid-template-columns: 60% 40%;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .chart-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .chart-card .chart-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .chart-card .chart-container {
+        width: 100%;
+        height: 350px;
+        position: relative;
+    }
+    
+    /* 词云画布样式 */
+    #keywordChart {
+        display: block;
+        width: 100%;
+        height: 100%;
+        /* 启用字体抗锯齿，让文字更清晰 */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+    
+    /* 实时消息流 */
+    .realtime-messages {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .realtime-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .realtime-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .live-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background: #dc3545;
+        border-radius: 50%;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .message-item {
+        padding: 12px;
+        margin-bottom: 10px;
+        border-left: 3px solid #007bff;
+        background: #f8f9fa;
+        border-radius: 4px;
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .message-item.image-message {
+        border-left-color: #28a745;
+    }
+    
+    .message-meta {
+        font-size: 12px;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+    
+    .message-keyword {
+        display: inline-block;
+        background: #007bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-right: 5px;
+    }
+    
+    .message-content {
+        font-size: 14px;
+        color: #2c3e50;
+        margin-top: 5px;
+        word-break: break-word;
+    }
+    
+    /* 主题切换按钮 */
+    .theme-toggle {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 1000;
+    }
+    
+    .theme-toggle button {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: none;
+        background: #007bff;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        transition: all 0.3s;
+    }
+    
+    .theme-toggle button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    
+    /* 暗色主题 */
+    body.dark-theme {
+        background-color: #1a1d24;
+        color: #e5e7eb;
+    }
+    
+    body.dark-theme .stat-card,
+    body.dark-theme .chart-card,
+    body.dark-theme .realtime-messages {
+        background: #252932;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    body.dark-theme .stat-card .label,
+    body.dark-theme .stat-card .value,
+    body.dark-theme .chart-card .chart-title,
+    body.dark-theme .realtime-title,
+    body.dark-theme .message-content {
+        color: #e5e7eb;
+    }
+    
+    body.dark-theme .message-item {
+        background: #1a1d24;
+        border-left-color: #3b82f6;
+    }
+    
+    body.dark-theme .message-meta {
+        color: #9ca3af;
+    }
+    
+    body.dark-theme .realtime-header {
+        border-bottom-color: #374151;
+    }
+    
+    /* 时间选择器 */
+    .time-selector {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .time-selector button {
+        padding: 5px 12px;
+        border: 1px solid #dee2e6;
+        background: white;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+    
+    .time-selector button:hover {
+        background: #e9ecef;
+    }
+    
+    .time-selector button.active {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+    
+    body.dark-theme .time-selector button {
+        background: #374151;
+        border-color: #4b5563;
+        color: #e5e7eb;
+    }
+    
+    body.dark-theme .time-selector button:hover {
+        background: #4b5563;
+    }
+    
+    body.dark-theme .time-selector button.active {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+    
+    /* 响应式 */
+    @media (max-width: 768px) {
+        .chart-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-chart-line"></i> 数据仪表盘</h2>
+        <div>
+            <button class="btn btn-sm btn-outline-primary" onclick="refreshAllData()">
+                <i class="fas fa-sync-alt"></i> 刷新数据
+            </button>
+        </div>
+    </div>
+    
+    <!-- 统计卡片区域 -->
+    <div class="stats-container" id="statsContainer">
+        <div class="stat-card">
+            <div class="label">今日匹配</div>
+            <div class="value" id="todayCount">-</div>
+            <div class="change neutral" id="todayChange">
+                <i class="fas fa-minus"></i>
+                <span>-</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="label">本周匹配</div>
+            <div class="value" id="weekCount">-</div>
+            <div class="change neutral" id="weekChange">
+                <i class="fas fa-minus"></i>
+                <span>-</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="label">本月匹配</div>
+            <div class="value" id="monthCount">-</div>
+            <div class="change neutral" id="monthChange">
+                <i class="fas fa-minus"></i>
+                <span>-</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="label">活跃群组</div>
+            <div class="value" id="activeGroups">-</div>
+            <div class="change neutral">
+                <span id="totalGroups">总共 - 个群组</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 第一行图表 -->
+    <div class="chart-row">
+        <!-- 匹配趋势图 -->
+        <div class="chart-card">
+            <div class="chart-title">
+                <span>匹配趋势</span>
+                <div class="time-selector">
+                    <button class="active" onclick="switchTrendPeriod('7d', this)">7天</button>
+                    <button onclick="switchTrendPeriod('30d', this)">30天</button>
+                    <button onclick="switchTrendPeriod('12m', this)">12月</button>
+                </div>
+            </div>
+            <div class="chart-container" id="trendChart"></div>
+        </div>
+        
+        <!-- 群组活跃度 -->
+        <div class="chart-card">
+            <div class="chart-title">
+                <span>群组活跃度 Top 10</span>
+                <div class="time-selector">
+                    <button onclick="switchGroupPeriod('today', this)">今日</button>
+                    <button class="active" onclick="switchGroupPeriod('week', this)">本周</button>
+                    <button onclick="switchGroupPeriod('month', this)">本月</button>
+                </div>
+            </div>
+            <div class="chart-container" id="groupActivityChart"></div>
+        </div>
+    </div>
+    
+    <!-- 第二行图表 -->
+    <div class="chart-row">
+        <!-- 热词云图 -->
+        <div class="chart-card">
+            <div class="chart-title">
+                <span>热门关键词</span>
+                <div class="time-selector">
+                    <button onclick="switchKeywordPeriod('today', this)">今日</button>
+                    <button class="active" onclick="switchKeywordPeriod('week', this)">本周</button>
+                    <button onclick="switchKeywordPeriod('month', this)">本月</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="keywordChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- 实时消息流 -->
+        <div class="realtime-messages">
+            <div class="realtime-header">
+                <div class="realtime-title">
+                    <span class="live-indicator"></span>
+                    <span>实时消息流</span>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="clearRealtimeMessages()">
+                    <i class="fas fa-trash"></i> 清空
+                </button>
+            </div>
+            <div id="realtimeMessagesList">
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                    <p>等待新消息...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 主题切换按钮 -->
+<div class="theme-toggle">
+    <button onclick="toggleTheme()" id="themeToggleBtn">
+        <i class="fas fa-moon"></i>
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<!-- WordCloud2.js -->
+<script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
+<!-- Socket.IO -->
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+<script>
+// 全局变量
+let trendChart, groupActivityChart;
+let currentTrendPeriod = '7d';
+let currentGroupPeriod = 'week';
+let currentKeywordPeriod = 'week';
+let socket;
+let realtimeMessages = [];
+const MAX_REALTIME_MESSAGES = 50;
+const STORAGE_KEY = 'telegram_realtime_messages';
+let currentKeywordData = []; // 存储当前关键词数据
+
+// 通知函数
+function showNotification(message, type = 'info') {
+    // 简单的通知实现（可以后续替换为更好的UI库）
+    const colors = {
+        'success': '#28a745',
+        'error': '#dc3545',
+        'warning': '#ffc107',
+        'info': '#17a2b8'
+    };
+    
+    console.log(`[${type.toUpperCase()}] ${message}`);
+    
+    // 可以在此处添加 Toast 通知
+}
+
+// 从 localStorage 加载实时消息
+function loadRealtimeMessagesFromStorage() {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            realtimeMessages = JSON.parse(stored);
+            console.log(`从缓存加载了 ${realtimeMessages.length} 条实时消息`);
+            renderRealtimeMessages();
+        }
+    } catch (e) {
+        console.error('加载实时消息失败:', e);
+        realtimeMessages = [];
+    }
+}
+
+// 保存实时消息到 localStorage
+function saveRealtimeMessagesToStorage() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(realtimeMessages));
+    } catch (e) {
+        console.error('保存实时消息失败:', e);
+    }
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 检查并应用主题
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-theme');
+        document.getElementById('themeToggleBtn').innerHTML = '<i class="fas fa-sun"></i>';
+    }
+    
+    // 加载缓存的实时消息
+    loadRealtimeMessagesFromStorage();
+    
+    // 初始化图表
+    initCharts();
+    
+    // 加载数据
+    loadStats();
+    loadTrends();
+    loadGroupActivity();
+    loadHotKeywords();
+    
+    // 初始化 WebSocket
+    initWebSocket();
+});
+
+// 初始化图表
+function initCharts() {
+    trendChart = echarts.init(document.getElementById('trendChart'));
+    groupActivityChart = echarts.init(document.getElementById('groupActivityChart'));
+    // 词云不使用 ECharts，直接使用 WordCloud2
+    
+    // 监听窗口大小变化
+    window.addEventListener('resize', () => {
+        trendChart.resize();
+        groupActivityChart.resize();
+        // 词云重新渲染
+        if (currentKeywordData.length > 0) {
+            renderWordCloud(currentKeywordData);
+        }
+    });
+    
+    // 监听主题变化
+    const observer = new MutationObserver(() => {
+        const isDark = document.body.classList.contains('dark-theme');
+        updateChartsTheme(isDark);
+        // 词云也需要更新主题
+        if (currentKeywordData.length > 0) {
+            renderWordCloud(currentKeywordData);
+        }
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+}
+
+// 更新图表主题
+function updateChartsTheme(isDark) {
+    const textColor = isDark ? '#e5e7eb' : '#2c3e50';
+    const backgroundColor = isDark ? '#252932' : '#ffffff';
+    
+    [trendChart, groupActivityChart, keywordChart].forEach(chart => {
+        const option = chart.getOption();
+        if (option) {
+            chart.setOption({
+                backgroundColor: backgroundColor,
+                textStyle: { color: textColor },
+                xAxis: option.xAxis ? [{ axisLabel: { color: textColor }, axisLine: { lineStyle: { color: textColor } } }] : undefined,
+                yAxis: option.yAxis ? [{ axisLabel: { color: textColor }, axisLine: { lineStyle: { color: textColor } }, splitLine: { lineStyle: { color: isDark ? '#374151' : '#e5e7eb' } } }] : undefined
+            });
+        }
+    });
+}
+
+// 加载统计数据
+function loadStats() {
+    fetch('/api/dashboard/stats')
+        .then(res => {
+            if (!res.ok) throw new Error('网络响应失败');
+            return res.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            // 今日
+            document.getElementById('todayCount').textContent = data.today.count.toLocaleString();
+            updateChangeIndicator('todayChange', data.today.change);
+            
+            // 本周
+            document.getElementById('weekCount').textContent = data.week.count.toLocaleString();
+            updateChangeIndicator('weekChange', data.week.change);
+            
+            // 本月
+            document.getElementById('monthCount').textContent = data.month.count.toLocaleString();
+            updateChangeIndicator('monthChange', data.month.change);
+            
+            // 活跃群组
+            document.getElementById('activeGroups').textContent = data.active_groups;
+            document.getElementById('totalGroups').textContent = `总共 ${data.total_groups} 个群组`;
+        })
+        .catch(err => {
+            console.error('加载统计数据失败:', err);
+            showNotification('加载统计数据失败: ' + err.message, 'error');
+        });
+}
+
+// 更新变化指示器
+function updateChangeIndicator(elementId, change) {
+    const element = document.getElementById(elementId);
+    const icon = element.querySelector('i');
+    const span = element.querySelector('span');
+    
+    element.className = 'change';
+    if (change >= 999) {
+        // 新增数据（上期为0，本期有数据）
+        element.classList.add('positive');
+        icon.className = 'fas fa-plus-circle';
+        span.textContent = '新增';
+    } else if (change > 0) {
+        element.classList.add('positive');
+        icon.className = 'fas fa-arrow-up';
+        span.textContent = `+${change}%`;
+    } else if (change < 0) {
+        element.classList.add('negative');
+        icon.className = 'fas fa-arrow-down';
+        span.textContent = `${change}%`;
+    } else {
+        element.classList.add('neutral');
+        icon.className = 'fas fa-minus';
+        span.textContent = '0%';
+    }
+}
+
+// 加载趋势数据
+function loadTrends() {
+    fetch(`/api/dashboard/trends?period=${currentTrendPeriod}`)
+        .then(res => {
+            if (!res.ok) throw new Error('网络响应失败');
+            return res.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            // 空数据处理
+            if (!data || data.length === 0) {
+                console.warn('趋势数据为空');
+                data = [];
+            }
+            
+            const isDark = document.body.classList.contains('dark-theme');
+            const option = {
+                backgroundColor: isDark ? '#252932' : '#ffffff',
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'cross' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: data.map(d => d.label),
+                    axisLabel: { color: isDark ? '#e5e7eb' : '#2c3e50' },
+                    axisLine: { lineStyle: { color: isDark ? '#e5e7eb' : '#2c3e50' } }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLabel: { color: isDark ? '#e5e7eb' : '#2c3e50' },
+                    axisLine: { lineStyle: { color: isDark ? '#e5e7eb' : '#2c3e50' } },
+                    splitLine: { lineStyle: { color: isDark ? '#374151' : '#e5e7eb' } }
+                },
+                series: [{
+                    name: '匹配数',
+                    type: 'line',
+                    smooth: true,
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(0, 123, 255, 0.3)' },
+                            { offset: 1, color: 'rgba(0, 123, 255, 0.05)' }
+                        ])
+                    },
+                    data: data.map(d => d.count),
+                    itemStyle: { color: '#007bff' },
+                    lineStyle: { width: 2 }
+                }]
+            };
+            trendChart.setOption(option);
+        })
+        .catch(err => {
+            console.error('加载趋势数据失败:', err);
+            showNotification('加载趋势数据失败: ' + err.message, 'error');
+        });
+}
+
+// 加载群组活跃度
+function loadGroupActivity() {
+    fetch(`/api/dashboard/group_activity?period=${currentGroupPeriod}&limit=10`)
+        .then(res => {
+            if (!res.ok) throw new Error('网络响应失败');
+            return res.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            // 空数据处理
+            if (!data || data.length === 0) {
+                console.warn('群组活跃度数据为空');
+                data = [];
+            }
+            const isDark = document.body.classList.contains('dark-theme');
+            const option = {
+                backgroundColor: isDark ? '#252932' : '#ffffff',
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    axisLabel: { color: isDark ? '#e5e7eb' : '#2c3e50' },
+                    splitLine: { lineStyle: { color: isDark ? '#374151' : '#e5e7eb' } }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: data.map(d => d.group_name).reverse(),
+                    axisLabel: {
+                        color: isDark ? '#e5e7eb' : '#2c3e50',
+                        formatter: function(value) {
+                            return value.length > 15 ? value.substring(0, 15) + '...' : value;
+                        }
+                    },
+                    axisLine: { lineStyle: { color: isDark ? '#e5e7eb' : '#2c3e50' } }
+                },
+                series: [{
+                    name: '消息数',
+                    type: 'bar',
+                    data: data.map(d => d.count).reverse(),
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                            { offset: 0, color: '#007bff' },
+                            { offset: 1, color: '#00d4ff' }
+                        ])
+                    },
+                    label: {
+                        show: true,
+                        position: 'right',
+                        color: isDark ? '#e5e7eb' : '#2c3e50'
+                    }
+                }]
+            };
+            groupActivityChart.setOption(option);
+        })
+        .catch(err => {
+            console.error('加载群组活跃度失败:', err);
+            showNotification('加载群组活跃度失败: ' + err.message, 'error');
+        });
+}
+
+// 加载热门关键词
+function loadHotKeywords() {
+    fetch(`/api/dashboard/hot_keywords?period=${currentKeywordPeriod}&limit=100`)
+        .then(res => {
+            if (!res.ok) throw new Error('网络响应失败');
+            return res.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            // 空数据处理
+            if (!data || data.length === 0) {
+                console.warn('热门关键词数据为空');
+                data = [];
+            }
+            
+            // 保存数据供其他函数使用
+            currentKeywordData = data;
+            
+            // 渲染词云
+            renderWordCloud(data);
+        })
+        .catch(err => {
+            console.error('加载热门关键词失败:', err);
+            showNotification('加载热门关键词失败: ' + err.message, 'error');
+        });
+}
+
+// 渲染词云
+function renderWordCloud(data) {
+    const canvas = document.getElementById('keywordChart');
+    if (!canvas) return;
+    
+    // 获取容器尺寸（CSS像素）
+    const container = canvas.parentElement;
+    const width = container.clientWidth || 800;
+    const height = 350;  // 固定高度
+    
+    // 获取设备像素比（Retina屏 = 2, 普通屏 = 1）
+    const dpr = window.devicePixelRatio || 1;
+    
+    console.log('词云渲染 - 容器尺寸:', width, 'x', height, 'DPR:', dpr);
+    
+    // 设置 canvas 物理像素尺寸（适配高分辨率屏幕）
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    
+    // 设置 canvas CSS 显示尺寸
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    
+    // 清空画布并启用抗锯齿
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    // 启用图像平滑处理（抗锯齿）
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    console.log('词云渲染 - Canvas 物理尺寸:', canvas.width, 'x', canvas.height);
+    
+    if (!data || data.length === 0) {
+        // 空数据提示（考虑 dpr）
+        ctx.fillStyle = document.body.classList.contains('dark-theme') ? '#6b7280' : '#9ca3af';
+        ctx.font = `${16 * dpr}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('暂无关键词数据', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+    
+    const isDark = document.body.classList.contains('dark-theme');
+    
+    // 准备词云数据: [['关键词', 权重], ...]
+    const wordList = data.map(item => [item.keyword, item.count]);
+    console.log('词云数据量:', wordList.length, '关键词');
+    
+    // 颜色方案 - 丰富多彩
+    const colors = isDark ? [
+        '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', 
+        '#10b981', '#06b6d4', '#f43f5e', '#84cc16',
+        '#6366f1', '#14b8a6', '#f97316', '#a855f7'
+    ] : [
+        '#2563eb', '#7c3aed', '#db2777', '#d97706',
+        '#059669', '#0891b2', '#dc2626', '#65a30d',
+        '#4f46e5', '#0d9488', '#ea580c', '#9333ea'
+    ];
+    
+    // 计算权重因子
+    const maxCount = Math.max(...data.map(d => d.count));
+    const minCount = Math.min(...data.map(d => d.count));
+    
+    // WordCloud2 配置
+    WordCloud(canvas, {
+        list: wordList,
+        gridSize: Math.round(8 * dpr),  // 根据 dpr 调整网格大小
+        weightFactor: function(size) {
+            // 根据数据范围动态调整大小
+            const range = maxCount - minCount || 1;
+            const normalized = (size - minCount) / range;
+            // 基础大小12px，最大50px，乘以 dpr 适配高分辨率
+            return Math.max(12, 50 * Math.pow(normalized, 0.8)) * dpr;
+        },
+        fontFamily: '"Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif',
+        fontWeight: function(size) {
+            // 热度高的词加粗
+            const normalized = (size - minCount) / (maxCount - minCount || 1);
+            return normalized > 0.7 ? 'bold' : 'normal';
+        },
+        color: function() {
+            return colors[Math.floor(Math.random() * colors.length)];
+        },
+        rotateRatio: 0.3,  // 30% 的词会旋转
+        rotationSteps: 2,   // 只有 0° 和 90° 两种角度
+        backgroundColor: isDark ? '#252932' : '#ffffff',
+        drawOutOfBound: false,
+        shrinkToFit: true,
+        shuffle: true,  // 随机排列
+        ellipticity: 0.65,  // 词云形状（0.65 较圆）
+        classes: 'wordcloud-item',  // CSS 类名
+        hover: function(item, dimension, event) {
+            if (item) {
+                canvas.style.cursor = 'pointer';
+                // 可以显示 tooltip
+                canvas.title = `${item[0]}: ${item[1]} 次`;
+            } else {
+                canvas.style.cursor = 'default';
+                canvas.title = '';
+            }
+        },
+        click: function(item, dimension, event) {
+            if (item) {
+                console.log(`点击了关键词: ${item[0]}, 出现 ${item[1]} 次`);
+                // 可以添加点击事件，比如跳转到关键词详情页或筛选消息
+            }
+        }
+    });
+}
+
+// 切换趋势周期
+function switchTrendPeriod(period, btn) {
+    currentTrendPeriod = period;
+    // 只移除同一组内其他按钮的 active 类
+    btn.parentElement.querySelectorAll('button').forEach(b => {
+        b.classList.remove('active');
+    });
+    btn.classList.add('active');
+    loadTrends();
+}
+
+// 切换群组周期
+function switchGroupPeriod(period, btn) {
+    currentGroupPeriod = period;
+    // 只移除同一组内其他按钮的 active 类
+    btn.parentElement.querySelectorAll('button').forEach(b => {
+        b.classList.remove('active');
+    });
+    btn.classList.add('active');
+    loadGroupActivity();
+}
+
+// 切换关键词周期
+function switchKeywordPeriod(period, btn) {
+    currentKeywordPeriod = period;
+    // 只移除同一组内其他按钮的 active 类
+    btn.parentElement.querySelectorAll('button').forEach(b => {
+        b.classList.remove('active');
+    });
+    btn.classList.add('active');
+    loadHotKeywords();
+}
+
+// 刷新所有数据（带防抖）
+let refreshTimeout = null;
+function refreshAllData() {
+    // 防抖：如果在1秒内重复点击，忽略后续点击
+    if (refreshTimeout) {
+        console.log('刷新操作太频繁，请稍后再试');
+        return;
+    }
+    
+    refreshTimeout = setTimeout(() => {
+        refreshTimeout = null;
+    }, 1000);
+    
+    console.log('开始刷新所有数据...');
+    loadStats();
+    loadTrends();
+    loadGroupActivity();
+    loadHotKeywords();
+}
+
+// 初始化 WebSocket（带自动重连）
+function initWebSocket() {
+    socket = io.connect(window.location.origin, {
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: Infinity
+    });
+    
+    socket.on('connect', function() {
+        console.log('[WebSocket] 已连接');
+        showConnectionStatus('已连接', 'success');
+    });
+    
+    socket.on('disconnect', function() {
+        console.log('[WebSocket] 已断开');
+        showConnectionStatus('已断开', 'danger');
+    });
+    
+    socket.on('reconnect', function(attemptNumber) {
+        console.log('[WebSocket] 重新连接成功，尝试次数:', attemptNumber);
+        showConnectionStatus('重新连接成功', 'success');
+    });
+    
+    socket.on('reconnect_attempt', function() {
+        console.log('[WebSocket] 正在尝试重新连接...');
+        showConnectionStatus('正在重连...', 'warning');
+    });
+    
+    socket.on('reconnect_error', function(error) {
+        console.log('[WebSocket] 重连失败:', error);
+    });
+    
+    socket.on('reconnect_failed', function() {
+        console.log('[WebSocket] 重连失败（已达到最大尝试次数）');
+        showConnectionStatus('连接失败', 'danger');
+    });
+    
+    socket.on('new_message', function(data) {
+        console.log('[WebSocket] 收到新消息:', data);
+        addRealtimeMessage(data);
+        // 刷新统计数据
+        loadStats();
+    });
+}
+
+// 显示连接状态提示
+function showConnectionStatus(message, type) {
+    const indicator = document.querySelector('.live-indicator');
+    if (indicator) {
+        if (type === 'success') {
+            indicator.style.background = '#28a745';
+        } else if (type === 'danger') {
+            indicator.style.background = '#dc3545';
+        } else if (type === 'warning') {
+            indicator.style.background = '#ffc107';
+        }
+    }
+}
+
+// 添加实时消息
+function addRealtimeMessage(data) {
+    realtimeMessages.unshift(data);
+    if (realtimeMessages.length > MAX_REALTIME_MESSAGES) {
+        realtimeMessages.pop();
+    }
+    
+    renderRealtimeMessages();
+    // 保存到 localStorage
+    saveRealtimeMessagesToStorage();
+}
+
+// 渲染实时消息
+function renderRealtimeMessages() {
+    const container = document.getElementById('realtimeMessagesList');
+    
+    if (realtimeMessages.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <p>等待新消息...</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = realtimeMessages.map(msg => `
+        <div class="message-item ${msg.is_image ? 'image-message' : ''}">
+            <div class="message-meta">
+                <strong>${msg.group_name}</strong> · ${msg.sender} · ${msg.message_date}
+                ${msg.is_image ? '<i class="fas fa-image ml-1"></i>' : ''}
+            </div>
+            <div>
+                <span class="message-keyword">${msg.matched_keyword}</span>
+            </div>
+            <div class="message-content">${escapeHtml(msg.message_content)}</div>
+        </div>
+    `).join('');
+}
+
+// 清空实时消息
+function clearRealtimeMessages() {
+    if (realtimeMessages.length === 0) {
+        return;
+    }
+    
+    if (confirm(`确定要清空 ${realtimeMessages.length} 条实时消息吗？`)) {
+        realtimeMessages = [];
+        renderRealtimeMessages();
+        // 清空 localStorage
+        localStorage.removeItem(STORAGE_KEY);
+        showNotification('实时消息已清空', 'success');
+    }
+}
+
+// 转义 HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 主题切换
+function toggleTheme() {
+    const body = document.body;
+    const btn = document.getElementById('themeToggleBtn');
+    
+    if (body.classList.contains('dark-theme')) {
+        body.classList.remove('dark-theme');
+        btn.innerHTML = '<i class="fas fa-moon"></i>';
+        localStorage.setItem('theme', 'light');
+    } else {
+        body.classList.add('dark-theme');
+        btn.innerHTML = '<i class="fas fa-sun"></i>';
+        localStorage.setItem('theme', 'dark');
+    }
+}
+</script>
+{% endblock %}
+

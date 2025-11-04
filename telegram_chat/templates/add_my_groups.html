@@ -1,0 +1,126 @@
+<!-- C:\Users\Anonymous\Desktop\tele\templates\add_my_groups.html -->
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2>从已加入的群组中添加</h2>
+<p class="text-muted">点击下方按钮，系统将获取您已加入但尚未监控的群组列表。</p>
+
+<div class="mt-4">
+    <button class="btn btn-primary" id="fetch-groups-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
+        点击获取我的群组
+    </button>
+</div>
+
+<!-- 结果将通过JS动态插入这里 -->
+<div id="groups-container" class="mt-4"></div>
+
+<!-- 加载弹窗 (Bootstrap Modal) -->
+<div class="modal fade" id="loadingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="loadingModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="loadingModalLabel">请稍候</h5>
+      </div>
+      <div class="modal-body text-center">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">正在从Telegram获取群组列表... <br> 如果群组较多，这可能需要几十秒的时间。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fetchBtn = document.getElementById('fetch-groups-btn');
+    const container = document.getElementById('groups-container');
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+
+    fetchBtn.addEventListener('click', function() {
+        // 隐藏按钮，防止重复点击
+        fetchBtn.style.display = 'none';
+        // 显示加载弹窗
+        loadingModal.show();
+        // 清空旧内容
+        container.innerHTML = '';
+
+        // 发起API请求
+        fetch("{{ url_for('api_get_my_groups') }}")
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error || '网络响应错误，请检查后台日志。'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                loadingModal.hide();
+                
+                if (data.groups && data.groups.length > 0) {
+                    // 构建HTML
+                    let formHtml = `
+                    <form method="POST" action="{{ url_for('batch_add_groups') }}" id="batch-add-form">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="select-all">全选</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="deselect-all">全不选</button>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/></svg>
+                                将选中项添加到监控列表
+                            </button>
+                        </div>
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    `;
+                    
+                    data.groups.forEach(group => {
+                        const logoPath = group.logo_path ? `/static/${group.logo_path}` : '';
+                        const logoHtml = group.logo_path ?
+                            `<img src="${logoPath}" alt="logo" width="50" height="50" class="rounded-circle me-3">` :
+                            `<div class="rounded-circle me-3 bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px; font-size: 1.5rem;">${group.name[0].toUpperCase()}</div>`;
+                        
+                        const groupValue = `${group.id}|||${group.name}|||${group.logo_path}`;
+
+                        formHtml += `
+                        <div class="col">
+                            <div class="card h-100">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="flex-shrink-0">${logoHtml}</div>
+                                    <div class="flex-grow-1 text-truncate">
+                                        <h6 class="card-title text-truncate" title="${group.name}">${group.name}</h6>
+                                        <small class="text-muted">ID: ${group.id}</small>
+                                    </div>
+                                    <div class="form-check ms-3">
+                                        <input class="form-check-input" type="checkbox" name="groups" value="${groupValue}" style="transform: scale(1.5);">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    });
+
+                    formHtml += `</div></form>`;
+                    container.innerHTML = formHtml;
+
+                    // 重新绑定全选/全不选事件
+                    const selectAllBtn = document.getElementById('select-all');
+                    const deselectAllBtn = document.getElementById('deselect-all');
+                    const checkboxes = document.querySelectorAll('input[name="groups"]');
+
+                    selectAllBtn.addEventListener('click', () => checkboxes.forEach(cb => cb.checked = true));
+                    deselectAllBtn.addEventListener('click', () => checkboxes.forEach(cb => cb.checked = false));
+                } else {
+                    container.innerHTML = '<div class="alert alert-info mt-3">太棒了！你加入的所有群组都已经在监控列表中了，或者你的账号没有加入任何群组。</div>';
+                }
+            })
+            .catch(error => {
+                loadingModal.hide();
+                container.innerHTML = `<div class="alert alert-danger mt-3"><strong>获取群组列表失败:</strong> ${error.message}</div>`;
+                // 恢复按钮，以便重试
+                fetchBtn.style.display = 'block';
+            });
+    });
+});
+</script>
+{% endblock %}

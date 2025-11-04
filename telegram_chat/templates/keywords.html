@@ -1,0 +1,221 @@
+<!-- C:\Users\Anonymous\Desktop\tele\templates\keywords.html -->
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2>关键词管理</h2>
+<p class="text-muted">添加关键词，并为每个关键词指定要监控的一个或多个群组。</p>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title">添加关键词</h5>
+        {% if not groups %}
+        <div class="alert alert-warning" role="alert">
+          请先在 <a href="{{ url_for('groups') }}" class="alert-link">群组管理</a> 页面添加至少一个群组，然后才能添加关键词。
+        </div>
+        {% else %}
+        <form method="POST">
+            <div class="mb-3">
+                <label for="keywords_text" class="form-label">关键词 (一行一个)</label>
+                <textarea class="form-control" name="keywords_text" id="keywords_text" rows="5" placeholder="例如:&#10;关键词1&#10;关键词2&#10;关键词3" required></textarea>
+                <div class="form-text">您可以在此输入多个关键词，每行一个，它们将同时被添加到下方所选的群组中。</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">选择要监控的群组 (可多选)</label>
+                <div class="mb-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="select-all-groups">全选</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="deselect-all-groups">全不选</button>
+                </div>
+                <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
+                    {% for group in groups %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="groups" value="{{ group.id }}" id="group_{{ group.id }}">
+                        <label class="form-check-label" for="group_{{ group.id }}">
+                            {{ group.group_name }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <button class="btn btn-primary" type="submit">确认添加</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <span>关键词列表 (共 {{ pagination.total }} 条，当前第 {{ pagination.page }}/{{ pagination.pages }} 页)</span>
+            <form action="{{ url_for('keywords') }}" method="GET" style="width: 280px;">
+                <div class="input-group">
+                    <input class="form-control" type="search" placeholder="搜索关键词..." name="q" value="{{ search_query or '' }}" aria-label="Search">
+                    <button class="btn btn-secondary" type="submit">搜索</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if keywords %}
+        <form action="{{ url_for('batch_delete_keywords') }}" method="POST" id="batch-delete-form">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;"><input class="form-check-input" type="checkbox" id="select-all-keywords"></th>
+                        <th style="width: 30%;">关键词</th>
+                        <th style="width: 50%;">关联群组</th>
+                        <th style="width: 15%;" class="text-end">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for keyword in keywords %}
+                    <tr>
+                        <td><input class="form-check-input keyword-checkbox" type="checkbox" name="keyword_ids" value="{{ keyword.id }}"></td>
+                        <td>{{ keyword.text }}</td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for group in keyword.groups %}
+                                <span class="badge bg-secondary">{{ group.group_name }}</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">未关联任何群组</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('edit_keyword', keyword_id=keyword.id) }}" class="btn btn-outline-secondary btn-sm">编辑</a>
+                            <a href="{{ url_for('delete_keyword', keyword_id=keyword.id) }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('确定要删除吗？')">删除</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- 分页导航 -->
+            {% if pagination.pages > 1 %}
+            <nav aria-label="关键词分页">
+                <ul class="pagination justify-content-center mb-3">
+                    <!-- 首页 -->
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('keywords', page=1, q=search_query) }}">首页</a>
+                    </li>
+                    
+                    <!-- 上一页 -->
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('keywords', page=pagination.prev_num, q=search_query) if pagination.has_prev else '#' }}">上一页</a>
+                    </li>
+                    
+                    <!-- 页码 -->
+                    {% for page_num in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('keywords', page=page_num, q=search_query) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <!-- 下一页 -->
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('keywords', page=pagination.next_num, q=search_query) if pagination.has_next else '#' }}">下一页</a>
+                    </li>
+                    
+                    <!-- 末页 -->
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('keywords', page=pagination.pages, q=search_query) }}">末页</a>
+                    </li>
+                </ul>
+                
+                <!-- 跳转到指定页 -->
+                <div class="d-flex justify-content-center align-items-center gap-2 mb-3">
+                    <span class="text-muted">跳转到</span>
+                    <input type="number" class="form-control" id="jump-to-page" min="1" max="{{ pagination.pages }}" value="{{ pagination.page }}" style="width: 80px;">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="jumpToPage()">跳转</button>
+                </div>
+            </nav>
+            {% endif %}
+            
+            <button type="submit" class="btn btn-danger" onclick="return confirm('确定要删除选中的所有关键词吗？')">删除选中</button>
+        </form>
+        {% else %}
+            <p class="text-center text-muted">
+                {% if search_query %}
+                没有找到匹配 "<strong>{{ search_query }}</strong>" 的关键词。
+                {% else %}
+                还没有添加任何关键词。
+                {% endif %}
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- For Group Selection in Add Form ---
+    const selectAllGroupsBtn = document.getElementById('select-all-groups');
+    const deselectAllGroupsBtn = document.getElementById('deselect-all-groups');
+    const groupCheckboxes = document.querySelectorAll('input[name="groups"]');
+
+    if(selectAllGroupsBtn && deselectAllGroupsBtn && groupCheckboxes.length > 0) {
+        selectAllGroupsBtn.addEventListener('click', function() {
+            groupCheckboxes.forEach(cb => cb.checked = true);
+        });
+
+        deselectAllGroupsBtn.addEventListener('click', function() {
+            groupCheckboxes.forEach(cb => cb.checked = false);
+        });
+    }
+
+    // --- For Keyword Batch Deletion ---
+    const selectAllKeywordsCheckbox = document.getElementById('select-all-keywords');
+    const keywordCheckboxes = document.querySelectorAll('.keyword-checkbox');
+
+    if(selectAllKeywordsCheckbox && keywordCheckboxes.length > 0) {
+        selectAllKeywordsCheckbox.addEventListener('click', function() {
+            keywordCheckboxes.forEach(cb => {
+                cb.checked = selectAllKeywordsCheckbox.checked;
+            });
+        });
+
+        keywordCheckboxes.forEach(cb => {
+            cb.addEventListener('click', function() {
+                if (!this.checked) {
+                    selectAllKeywordsCheckbox.checked = false;
+                } else {
+                    const allChecked = Array.from(keywordCheckboxes).every(kcb => kcb.checked);
+                    selectAllKeywordsCheckbox.checked = allChecked;
+                }
+            });
+        });
+    }
+});
+
+// 分页跳转函数
+function jumpToPage() {
+    const pageInput = document.getElementById('jump-to-page');
+    const pageNum = parseInt(pageInput.value);
+    const searchQuery = "{{ search_query or '' }}";
+    
+    if (pageNum && pageNum > 0) {
+        let url = "{{ url_for('keywords') }}?page=" + pageNum;
+        if (searchQuery) {
+            url += "&q=" + encodeURIComponent(searchQuery);
+        }
+        window.location.href = url;
+    }
+}
+
+// 支持Enter键跳转
+document.addEventListener('DOMContentLoaded', function() {
+    const jumpInput = document.getElementById('jump-to-page');
+    if (jumpInput) {
+        jumpInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                jumpToPage();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

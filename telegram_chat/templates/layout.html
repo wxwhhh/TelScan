@@ -1,0 +1,179 @@
+<!-- C:\Users\Anonymous\Desktop\tele\templates\layout.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Telegram 监控系统{% endblock %}</title>
+    <!-- 本地 Bootstrap CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='js_css/bootstrap.min.css') }}">
+    <!-- FontAwesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {% block extra_css %}{% endblock %}
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+            color: #212529;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,.04);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        
+        /* 暗色主题适配 */
+        body.dark-theme {
+            background-color: #1a1d24 !important;
+            color: #e5e7eb !important;
+        }
+        
+        body.dark-theme .navbar {
+            background-color: #252932 !important;
+            border-bottom-color: #374151 !important;
+        }
+        
+        body.dark-theme .navbar-brand,
+        body.dark-theme .nav-link {
+            color: #e5e7eb !important;
+        }
+        
+        body.dark-theme .nav-link.active {
+            color: #3b82f6 !important;
+            border-bottom-color: #3b82f6 !important;
+        }
+        
+        body.dark-theme .container:not(.container-fluid) {
+            background-color: #252932 !important;
+            color: #e5e7eb !important;
+        }
+        
+        body.dark-theme footer {
+            background-color: #252932 !important;
+            color: #9ca3af !important;
+        }
+        
+        body.dark-theme footer .text-muted {
+            color: #9ca3af !important;
+        }
+        
+        body.dark-theme .alert {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #e5e7eb !important;
+        }
+        
+        /* 优化 footer 样式 - 只去掉白色背景 */
+        .footer {
+            background-color: transparent !important;
+        }
+        
+        .nav-link {
+            color: #495057;
+        }
+        .nav-link.active {
+            color: #0d6efd;
+            border-bottom: 2px solid #0d6efd;
+        }
+        .container {
+            margin-top: 2rem;
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 15px rgba(0,0,0,.05);
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .flash-messages {
+            list-style: none;
+            padding-left: 0;
+        }
+        .alert {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('config') }}">Telegram监控</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            {% if g.user %}
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-chart-line"></i> 数据仪表盘
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'groups' or request.endpoint == 'add_my_groups' or request.endpoint == 'add_my_groups_page' %}active{% endif %}" href="{{ url_for('groups') }}">群组管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'keywords' %}active{% endif %}" href="{{ url_for('keywords') }}">关键词管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'messages' %}active{% endif %}" href="{{ url_for('messages') }}">消息日志</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'config' %}active{% endif %}" href="{{ url_for('config') }}">系统配置</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <span class="navbar-text me-3">欢迎, {{ g.user.username }}</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-danger btn-sm" href="{{ url_for('logout') }}">注销</a>
+                    </li>
+                </ul>
+            {% else %}
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('login') }}">登录</a>
+                    </li>
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class=flash-messages>
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</div>
+
+<footer class="footer mt-auto py-3 bg-light">
+    <div class="container text-center">
+        <span class="text-muted">2025@ 公众号白昼信安 by M9</span>
+    </div>
+</footer>
+
+<!-- 本地 Bootstrap JS 和 Popper.js -->
+<script src="{{ url_for('static', filename='js_css/popper.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js_css/bootstrap.min.js') }}"></script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>
