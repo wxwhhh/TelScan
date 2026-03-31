@@ -1079,61 +1079,64 @@ def broadcast_new_message(message_data):
         print(f"[WebSocket] 广播失败: {e}")
 
 if __name__ == '__main__':
+    WEB_PORT = int(os.environ.get('WEB_PORT', 8033))
+    DOCKER_MODE = os.environ.get('DOCKER_MODE', 'false').lower() == 'true'
+
     with app.app_context():
         config = Config.query.first()
         if not config:
-            print("--- 首次运行配置向导 ---")
-            print("未检测到Telegram API配置，请根据提示输入：")
-            
-            api_id = input("请输入你的 API ID: ").strip()
-            api_hash = input("请输入你的 API Hash: ").strip()
-            phone_number = input("请输入你的手机号码 (格式如 +8612345678901): ").strip()
+            # Docker 模式：从环境变量读取配置
+            env_api_id = os.environ.get('TELEGRAM_API_ID', '').strip()
+            env_api_hash = os.environ.get('TELEGRAM_API_HASH', '').strip()
+            env_phone = os.environ.get('TELEGRAM_PHONE', '').strip()
 
-            if not (api_id.isdigit() and len(api_hash) > 10 and phone_number.startswith('+')):
-                 print("\n错误：输入格式不正确，请检查后重试。")
-                 exit()
+            if env_api_id and env_api_hash and env_phone:
+                new_config = Config(
+                    api_id=env_api_id,
+                    api_hash=env_api_hash,
+                    phone_number=env_phone
+                )
+                db.session.add(new_config)
+                db.session.commit()
+                print("[配置] 从环境变量加载 Telegram 配置成功")
+                config = new_config
+            elif DOCKER_MODE:
+                print("[配置] 未设置 Telegram 配置，仅启动 Web 服务")
+                print("[配置] 请通过 Web 界面或设置环境变量配置 Telegram")
+            else:
+                # 交互式输入（非 Docker 模式）
+                print("--- 首次运行配置向导 ---")
+                print("未检测到Telegram API配置，请根据提示输入：")
 
-            new_config = Config(
-                api_id=api_id,
-                api_hash=api_hash,
-                phone_number=phone_number
-            )
-            db.session.add(new_config)
-            db.session.commit()
-            
-            print("\n基础配置已保存！")
-            print("请重新启动程序以加载新配置并完成Telegram登录。")
-            exit() 
+                api_id = input("请输入你的 API ID: ").strip()
+                api_hash = input("请输入你的 API Hash: ").strip()
+                phone_number = input("请输入你的手机号码 (格式如 +8612345678901): ").strip()
 
-    print("检测到配置，正在启动Telegram监控服务，请稍候...")
-    
-    # 设置 WebSocket 回调函数
-    import telegram_monitor
-    telegram_monitor.websocket_broadcast_callback = broadcast_new_message
-    
-    start_monitoring()
-    
-    from telegram_monitor import client_ready
-    print("等待客户端完全连接成功...")
-    ready = client_ready.wait(timeout=60) 
-    if not ready:
-        print("\n错误：监控服务在60秒内未能成功连接。")
-        print("请检查您的网络连接、Telegram API凭据是否正确，然后重启程序。")
-        exit() 
-    print("监控服务已就绪！")
+                if not (api_id.isdigit() and len(api_hash) > 10 and phone_number.startswith('+')):
+                     print("\n错误：输入格式不正确，请检查后重试。")
+                     exit()
 
-    WEB_PORT = 8033 # 定义端口变量，方便统一管理
+                new_config = Config(
+                    api_id=api_id,
+                    api_hash=api_hash,
+                    phone_number=phone_number
+                )
+                db.session.add(new_config)
+                db.session.commit()
+
+                print("\n基础配置已保存！")
+                print("请重新启动程序以加载新配置并完成Telegram登录。")
+                exit()
 
     # --- 鉴权：创建默认管理员用户 --- #
     with app.app_context():
-        # 确保在正确的应用上下文中执行数据库操作
-        # db.create_all() 已经在上面执行，这里不需要再次执行
-        
         if User.query.count() == 0:
             default_username = "admin"
-            default_password = secrets.token_urlsafe(16) # 生成一个安全的随机密码
+            # Docker 模式支持自定义管理员密码
+            env_admin_pw = os.environ.get('ADMIN_PASSWORD', '')
+            default_password = env_admin_pw if env_admin_pw else secrets.token_urlsafe(16)
             hashed_password = generate_password_hash(default_password)
-            
+
             new_admin_user = User(
                 username=default_username,
                 password_hash=hashed_password,
@@ -1141,7 +1144,7 @@ if __name__ == '__main__':
             )
             db.session.add(new_admin_user)
             db.session.commit()
-            
+
             print("------------------------------------------------------")
             print("⚠️ 初次运行：已创建默认管理员用户！")
             print(f"   用户名: {default_username}")
@@ -1149,8 +1152,29 @@ if __name__ == '__main__':
             print("   请务必妥善保管此密码。下次登录时将使用此密码。")
             print("------------------------------------------------------")
 
-    print("\n启动Web服务器...")
+    # 启动 Telegram 监控（如果有配置）
+    with app.app_context():
+        config = Config.query.first()
+        if config and config.api_id and config.api_hash and config.phone_number:
+            print("检测到配置，正在启动Telegram监控服务，请稍候...")
+            try:
+                import telegram_monitor
+                telegram_monitor.websocket_broadcast_callback = broadcast_new_message
+                start_monitoring()
+
+                from telegram_monitor import client_ready
+                print("等待客户端完全连接成功...")
+                ready = client_ready.wait(timeout=60)
+                if not ready:
+                    print("⚠️ 监控服务在60秒内未能成功连接，Web服务仍将继续启动。")
+                else:
+                    print("监控服务已就绪！")
+            except Exception as e:
+                print(f"⚠️ Telegram监控启动失败: {e}")
+                print("Web服务仍将继续启动。")
+        else:
+            print("⚠️ 未配置Telegram，监控服务未启动。请通过Web界面配置。")
+
+    print(f"\n🚀 启动Web服务器 (端口: {WEB_PORT})...")
     print(f"请在浏览器中打开 http://服务器IP:{WEB_PORT}")
-    
-    # 使用 socketio.run 代替 serve (在生产环境中可以使用 eventlet 或 gevent)
     socketio.run(app, host='0.0.0.0', port=WEB_PORT, debug=False, allow_unsafe_werkzeug=True)
