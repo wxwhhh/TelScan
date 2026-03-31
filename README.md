@@ -8,7 +8,7 @@
 
 
 #### 2、平台功能 -- 系统配置
-先进行系统配置，输入申请的API、手机号、钉钉后进行保存即可。
+先进行系统配置，输入申请的API、手机号、钉钉后进行保存即可（web搭建后默认先得配置telegram信息）。
 <img width="1273" height="633" alt="2" src="https://github.com/user-attachments/assets/0d73bab6-548d-4af9-a409-0df224fbd3f9" />
 
 #### 3、平台功能 -- 群组管理
@@ -39,6 +39,29 @@
 环境使用的是python和mysql环境
 <img width="804" height="410" alt="12" src="https://github.com/user-attachments/assets/b8977eea-3606-42dd-8486-e39f0ecf9517" />
 
+## Docker一键启动【推荐】
+1. 克隆项目
+`git clone https://github.com/wxwhhh/TelScan.git`
+
+`cd TelScan`
+
+2. 启动
+`docker compose up -d`
+
+3. 浏览器访问
+`http://你的服务器IP:5000`
+
+首次打开会自动弹出配置向导，填入 Telegram API 信息和手机号，提交后输入验证码即可。
+<img width="1203" height="597" alt="Snipaste_2026-03-31_19-43-25" src="https://github.com/user-attachments/assets/4334d664-4cab-4c78-97e2-2365a1083c71" />
+
+4、默认密码查看：
+`docker logs telscan-app 2>&1 | grep "密码"`
+
+没找到的可以自己重置密码
+`bash reset_password.sh # 自动生成随机密码`
+`bash reset_password.sh 123456 # 指定密码`
+
+## 源码搭建
 第一步：py环境自己安装哈，mysql数据库可以使用setup_mysql.sh脚本一键安装mysql数据库及创建默认数据库。
 <img width="574" height="539" alt="13" src="https://github.com/user-attachments/assets/926d67f7-b421-4175-810d-c889c9797de6" />
 
