@@ -1190,6 +1190,7 @@ def broadcast_new_message(message_data):
         print(f"[WebSocket] 广播失败: {e}")
 
 if __name__ == '__main__':
+    WEB_HOST = os.environ.get('WEB_HOST', '127.0.0.1')  # 默认绑定本地，仅允许本地访问
     WEB_PORT = int(os.environ.get('WEB_PORT', 8033))
 
     # --- 数据库初始化 & 管理员创建 --- #
@@ -1239,6 +1240,6 @@ if __name__ == '__main__':
             print("[启动] 未配置 Telegram，将通过 Web 界面配置")
 
     # --- 启动 Web 服务器 --- #
-    print(f"\n🚀 Web 服务器启动中 (端口: {WEB_PORT})...")
+    print(f"\n🚀 Web 服务器启动中 (端口: {WEB_PORT}, 绑定: {WEB_HOST})...")
     print(f"   访问地址: http://localhost:{WEB_PORT}")
-    socketio.run(app, host='0.0.0.0', port=WEB_PORT, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, host=WEB_HOST, port=WEB_PORT, debug=False, allow_unsafe_werkzeug=True)

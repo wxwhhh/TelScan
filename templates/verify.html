@@ -3,55 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram 验证 - TelScan</title>
+    <title>Telegram 验证 - 监控系统</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='js_css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #f8f9fa;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-        .verify-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 40px;
+        .verify-wrapper {
             max-width: 460px;
             width: 100%;
-            margin: 20px;
+            padding: 20px;
+        }
+        .brand-header {
             text-align: center;
+            margin-bottom: 24px;
         }
-        .verify-card h2 { color: #333; margin-bottom: 8px; font-weight: 700; }
-        .verify-card .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
-        .form-group { margin-bottom: 20px; text-align: left; }
-        .form-group label { font-weight: 600; color: #444; margin-bottom: 6px; display: block; }
-        .form-control {
-            border-radius: 8px; padding: 14px 16px; border: 2px solid #e0e0e0;
-            font-size: 18px; text-align: center; letter-spacing: 6px; transition: border-color 0.2s;
+        .brand-header .brand-icon {
+            width: 56px;
+            height: 56px;
+            background-color: #0d6efd;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
         }
-        .form-control:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
-        .btn-verify {
-            width: 100%; padding: 14px; font-size: 16px; font-weight: 600;
-            border-radius: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none; color: white; cursor: pointer; transition: transform 0.1s, box-shadow 0.2s;
+        .brand-header .brand-icon i {
+            font-size: 28px;
+            color: #fff;
         }
-        .btn-verify:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
-        .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid #e0e0e0;
-            border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
+        .brand-header h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 4px;
+        }
+        .brand-header p {
+            color: #6c757d;
+            font-size: 14px;
+            margin: 0;
+        }
+        .step-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #dee2e6;
+        }
+        .step-dot.done {
+            background-color: #198754;
+        }
+        .step-dot.active {
+            background-color: #0d6efd;
+            width: 24px;
+            border-radius: 4px;
+        }
+        .card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+        }
+        .card-body {
+            padding: 24px;
+        }
+        .status-box {
+            text-align: center;
+            padding: 16px 0;
+        }
+        .status-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+            line-height: 1;
+        }
+        .status-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 4px;
+        }
+        .status-desc {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 0;
+        }
+        .spinner-sm {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #dee2e6;
+            border-top-color: #0d6efd;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .status-icon { font-size: 48px; margin-bottom: 16px; }
-        .alert { border-radius: 8px; font-size: 14px; text-align: left; }
+        .form-label {
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+        .form-control {
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 4px;
+        }
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 2px rgba(13,110,253,.15);
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            border-radius: 6px;
+            padding: 10px 0;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+        }
+        .phone-badge {
+            display: inline-block;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 13px;
+            color: #495057;
+            font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 16px 0;
+            color: #adb5bd;
+            font-size: 12px;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background-color: #dee2e6;
+        }
+        .divider::before { margin-right: 12px; }
+        .divider::after { margin-left: 12px; }
     </style>
 </head>
 <body>
-    <div class="verify-card">
+    <div class="verify-wrapper">
+        <!-- 品牌标识 -->
+        <div class="brand-header">
+            <div class="brand-icon">
+                <i class="fab fa-telegram-plane"></i>
+            </div>
+            <h2>Telegram 验证</h2>
+            <p>配置已保存，请完成登录验证</p>
+        </div>
+
+        <!-- 步骤指示 -->
+        <div class="step-dots">
+            <div class="step-dot done"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+        </div>
+
+        <!-- 提示信息 -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
-              <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+              <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert" style="font-size:14px; border-radius:6px;">
                 {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
               </div>
@@ -59,90 +193,126 @@
           {% endif %}
         {% endwith %}
 
-        <!-- 等待验证码状态 -->
-        <div id="waiting-code">
-            <div class="status-icon">📱</div>
-            <h2>等待验证码</h2>
-            <p class="subtitle">Telegram 已向您的手机 <strong>{{ phone }}</strong> 发送验证码</p>
-            <div class="spinner mb-3"></div>
-            <p style="color:#999; font-size:13px;">请查看 Telegram 应用，输入收到的验证码</p>
-
-            <form action="{{ url_for('verify') }}" method="POST" class="mt-4">
-                <input type="hidden" name="step" value="code">
-                <div class="form-group">
-                    <label for="code">🔢 Telegram 验证码</label>
-                    <input type="text" class="form-control" id="code" name="code"
-                           placeholder="12345" maxlength="10" autocomplete="off" required>
+        <!-- 等待验证码 -->
+        <div id="panel-code" class="card">
+            <div class="card-body">
+                <div class="status-box" id="status-waiting">
+                    <div class="status-icon text-primary"><i class="fas fa-paper-plane"></i></div>
+                    <div class="status-title">验证码已发送</div>
+                    <p class="status-desc">
+                        Telegram 已向 <span class="phone-badge">{{ phone }}</span> 发送验证码
+                    </p>
                 </div>
-                <button type="submit" class="btn-verify">✅ 提交验证码</button>
-            </form>
+
+                <div class="status-box" id="status-sending" style="display:none;">
+                    <div class="status-icon text-primary"><i class="fas fa-circle-notch fa-spin"></i></div>
+                    <div class="status-title">正在发送验证码</div>
+                    <p class="status-desc">请稍候...</p>
+                </div>
+
+                <hr style="margin: 16px 0;">
+
+                <form action="{{ url_for('verify') }}" method="POST">
+                    <input type="hidden" name="step" value="code">
+                    <div class="mb-3">
+                        <label for="code" class="form-label">输入验证码</label>
+                        <input type="text" class="form-control" id="code" name="code"
+                               placeholder="12345" maxlength="10" autocomplete="off" required autofocus>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-check me-1"></i> 确认
+                    </button>
+                </form>
+            </div>
         </div>
 
-        <!-- 等待2FA密码状态 -->
-        <div id="waiting-2fa" style="display:none;">
-            <div class="status-icon">🔐</div>
-            <h2>两步验证</h2>
-            <p class="subtitle">您的 Telegram 账号开启了两步验证，请输入密码</p>
-
-            <form action="{{ url_for('verify') }}" method="POST">
-                <input type="hidden" name="step" value="password">
-                <div class="form-group">
-                    <label for="password">🔑 两步验证密码</label>
-                    <input type="password" class="form-control" id="password" name="code"
-                           placeholder="输入密码" autocomplete="off" required>
+        <!-- 两步验证 -->
+        <div id="panel-2fa" class="card" style="display:none;">
+            <div class="card-body">
+                <div class="status-box">
+                    <div class="status-icon text-warning"><i class="fas fa-shield-halved"></i></div>
+                    <div class="status-title">两步验证</div>
+                    <p class="status-desc">您的账号开启了两步验证</p>
                 </div>
-                <button type="submit" class="btn-verify">✅ 提交密码</button>
-            </form>
+
+                <hr style="margin: 16px 0;">
+
+                <form action="{{ url_for('verify') }}" method="POST">
+                    <input type="hidden" name="step" value="password">
+                    <div class="mb-3">
+                        <label for="password" class="form-label">两步验证密码</label>
+                        <input type="password" class="form-control" id="password" name="code"
+                               placeholder="输入密码" autocomplete="off" required autofocus style="letter-spacing:0; font-size:14px;">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-check me-1"></i> 确认
+                    </button>
+                </form>
+            </div>
         </div>
 
         <!-- 验证成功 -->
-        <div id="verified" style="display:none;">
-            <div class="status-icon">✅</div>
-            <h2>验证成功！</h2>
-            <p class="subtitle">Telegram 已成功连接，正在跳转...</p>
-            <div class="spinner mb-3"></div>
+        <div id="panel-done" class="card" style="display:none;">
+            <div class="card-body">
+                <div class="status-box">
+                    <div class="status-icon text-success"><i class="fas fa-check-circle"></i></div>
+                    <div class="status-title">验证成功</div>
+                    <p class="status-desc"><span class="spinner-sm"></span> 正在跳转...</p>
+                </div>
+            </div>
         </div>
 
-        <!-- 验证错误 -->
-        <div id="error" style="display:none;">
-            <div class="status-icon">❌</div>
-            <h2>验证失败</h2>
-            <p class="subtitle" id="error-msg"></p>
-            <a href="{{ url_for('setup') }}" class="btn-verify" style="display:inline-block; text-decoration:none;">🔄 重新配置</a>
+        <!-- 验证失败 -->
+        <div id="panel-error" class="card" style="display:none;">
+            <div class="card-body">
+                <div class="status-box">
+                    <div class="status-icon text-danger"><i class="fas fa-times-circle"></i></div>
+                    <div class="status-title">验证失败</div>
+                    <p class="status-desc" id="error-msg"></p>
+                </div>
+                <hr style="margin: 16px 0;">
+                <a href="{{ url_for('setup') }}" class="btn btn-primary w-100">
+                    <i class="fas fa-rotate me-1"></i> 重新配置
+                </a>
+            </div>
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='js_css/bootstrap.min.js') }}"></script>
     <script>
-        // 轮询验证状态
-        function pollStatus() {
-            fetch('{{ url_for("verify_status") }}')
-                .then(r => r.json())
-                .then(data => {
-                    if (data.step === 'done') {
-                        show('verified');
-                        setTimeout(() => window.location.href = '{{ url_for("login") }}', 1500);
-                    } else if (data.step === '2fa_required') {
-                        show('waiting-2fa');
-                    } else if (data.step === 'error') {
-                        document.getElementById('error-msg').textContent = data.error || '未知错误';
-                        show('error');
-                    }
-                    // code_sent 和 code_entered 继续轮询
-                    if (data.step !== 'done' && data.step !== 'error') {
-                        setTimeout(pollStatus, 1000);
-                    }
-                })
-                .catch(() => setTimeout(pollStatus, 2000));
-        }
+        var stepOrder = {'idle': 1, 'code_sent': 1, 'code_entered': 1, '2fa_required': 2, 'done': 3, 'error': 0};
 
-        function show(id) {
-            ['waiting-code', 'waiting-2fa', 'verified', 'error'].forEach(el => {
-                document.getElementById(el).style.display = el === id ? 'block' : 'none';
+        function showPanel(id) {
+            ['panel-code', 'panel-2fa', 'panel-done', 'panel-error'].forEach(function(el) {
+                document.getElementById(el).style.display = el === 'panel-' + id ? 'block' : 'none';
             });
         }
 
-        // 开始轮询
+        function pollStatus() {
+            fetch('{{ url_for("verify_status") }}')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.step === 'done') {
+                        showPanel('done');
+                        setTimeout(function() { window.location.href = '{{ url_for("login") }}'; }, 1500);
+                        return;
+                    }
+                    if (data.step === '2fa_required') {
+                        showPanel('2fa');
+                        setTimeout(pollStatus, 1000);
+                        return;
+                    }
+                    if (data.step === 'error') {
+                        document.getElementById('error-msg').textContent = data.error || '未知错误';
+                        showPanel('error');
+                        return;
+                    }
+                    // code_sent, code_entered, idle → 继续等待
+                    setTimeout(pollStatus, 1000);
+                })
+                .catch(function() { setTimeout(pollStatus, 2000); });
+        }
+
         pollStatus();
     </script>
 </body>

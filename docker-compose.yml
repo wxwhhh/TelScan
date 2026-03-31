@@ -9,7 +9,7 @@ services:
       MYSQL_USER: telegram1
       MYSQL_PASSWORD: "telegram&m910"
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     command: >
@@ -30,12 +30,11 @@ services:
       mysql:
         condition: service_healthy
     ports:
-      - "5000:8033"
+      - "127.0.0.1:5000:8033"
     environment:
+      - WEB_HOST=0.0.0.0
       - WEB_PORT=8033
       - FLASK_SECRET_KEY=change_me_to_random_string
-      # 管理员密码（可选，不设置则自动生成随机密码）
-      # - ADMIN_PASSWORD=your_admin_password
 
 volumes:
   mysql_data:
