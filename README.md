@@ -53,6 +53,7 @@
 
 4、默认密码查看：
 `docker logs telscan-app 2>&1 | grep "密码"`
+<img width="913" height="141" alt="image" src="https://github.com/user-attachments/assets/ff396046-3eb1-404f-a205-0dcb7b1884fa" />
 
 没找到的可以自己重置密码（将源码中的reset_password.sh下载到宿主机即可）
 
