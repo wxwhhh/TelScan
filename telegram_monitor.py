@@ -76,6 +76,10 @@ class VerificationManager:
 
 verification_manager = VerificationManager()
 
+# 性能优化: AC自动机缓存
+keyword_automatons = {}  # {group_id: automaton} 缓存每个群组的AC自动机
+automatons_lock = threading.Lock()  # 线程安全锁
+
 # OCR异步处理: 线程池（最多2个OCR任务并发）
 ocr_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="OCR")
 
