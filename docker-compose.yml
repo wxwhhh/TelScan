@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: telscan-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass123
+      MYSQL_DATABASE: telegram1
+      MYSQL_USER: telegram1
+      MYSQL_PASSWORD: "telegram&m910"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: telscan-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mysql.json:/app/mysql.json
+    environment:
+      - FLASK_SECRET_KEY=change_me_to_random_string
+    # Telegram session 文件持久化（登录后需要保持）
+      - TELETHON_SESSION=/app/session
+
+volumes:
+  mysql_data:

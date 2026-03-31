@@ -4,19 +4,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram 监控系统</title>
+    <title>{% block title %}Telegram 监控系统{% endblock %}</title>
     <!-- 本地 Bootstrap CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='js_css/bootstrap.min.css') }}">
+    <!-- FontAwesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {% block extra_css %}{% endblock %}
+    
     <style>
         body {
             background-color: #f8f9fa;
             color: #212529;
+            transition: background-color 0.3s, color 0.3s;
         }
         .navbar {
             background-color: #ffffff;
             border-bottom: 1px solid #dee2e6;
             box-shadow: 0 2px 4px rgba(0,0,0,.04);
+            transition: background-color 0.3s, border-color 0.3s;
         }
+        
+        /* 暗色主题适配 */
+        body.dark-theme {
+            background-color: #1a1d24 !important;
+            color: #e5e7eb !important;
+        }
+        
+        body.dark-theme .navbar {
+            background-color: #252932 !important;
+            border-bottom-color: #374151 !important;
+        }
+        
+        body.dark-theme .navbar-brand,
+        body.dark-theme .nav-link {
+            color: #e5e7eb !important;
+        }
+        
+        body.dark-theme .nav-link.active {
+            color: #3b82f6 !important;
+            border-bottom-color: #3b82f6 !important;
+        }
+        
+        body.dark-theme .container:not(.container-fluid) {
+            background-color: #252932 !important;
+            color: #e5e7eb !important;
+        }
+        
+        body.dark-theme footer {
+            background-color: #252932 !important;
+            color: #9ca3af !important;
+        }
+        
+        body.dark-theme footer .text-muted {
+            color: #9ca3af !important;
+        }
+        
+        body.dark-theme .alert {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #e5e7eb !important;
+        }
+        
+        /* 优化 footer 样式 - 只去掉白色背景 */
+        .footer {
+            background-color: transparent !important;
+        }
+        
         .nav-link {
             color: #495057;
         }
@@ -56,16 +110,21 @@
             {% if g.user %}
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'groups' or request.endpoint == 'add_my_groups' or request.endpoint == 'add_my_groups_page' %}active{% endif %}" href="{{ url_for('groups') }}">群组管理</a>
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-chart-line"></i> 数据仪表盘
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'config' %}active{% endif %}" href="{{ url_for('config') }}">系统配置</a>
+                        <a class="nav-link {% if request.endpoint == 'groups' or request.endpoint == 'add_my_groups' or request.endpoint == 'add_my_groups_page' %}active{% endif %}" href="{{ url_for('groups') }}">群组管理</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'keywords' %}active{% endif %}" href="{{ url_for('keywords') }}">关键词管理</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'messages' %}active{% endif %}" href="{{ url_for('messages') }}">消息日志</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'config' %}active{% endif %}" href="{{ url_for('config') }}">系统配置</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
@@ -113,6 +172,8 @@
 <!-- 本地 Bootstrap JS 和 Popper.js -->
 <script src="{{ url_for('static', filename='js_css/popper.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js_css/bootstrap.min.js') }}"></script>
+
+{% block extra_js %}{% endblock %}
 
 </body>
 </html>

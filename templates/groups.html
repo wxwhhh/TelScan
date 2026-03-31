@@ -40,7 +40,7 @@
 <div class="card">
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
-            <span>已监控的群组列表 ({{ groups|length }})</span>
+            <span>已监控的群组列表 (共 {{ pagination.total }} 个，当前第 {{ pagination.page }}/{{ pagination.pages }} 页)</span>
             <form action="{{ url_for('groups') }}" method="GET" style="width: 280px;">
                 <div class="input-group">
                     <input class="form-control" type="search" placeholder="搜索群组名称..." name="q" value="{{ search_query or '' }}" aria-label="Search">
@@ -82,6 +82,54 @@
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <!-- 分页导航 -->
+            {% if pagination.pages > 1 %}
+            <nav aria-label="群组分页">
+                <ul class="pagination justify-content-center mb-3">
+                    <!-- 首页 -->
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('groups', page=1, q=search_query) }}">首页</a>
+                    </li>
+                    
+                    <!-- 上一页 -->
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('groups', page=pagination.prev_num, q=search_query) if pagination.has_prev else '#' }}">上一页</a>
+                    </li>
+                    
+                    <!-- 页码 -->
+                    {% for page_num in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('groups', page=page_num, q=search_query) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <!-- 下一页 -->
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('groups', page=pagination.next_num, q=search_query) if pagination.has_next else '#' }}">下一页</a>
+                    </li>
+                    
+                    <!-- 末页 -->
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('groups', page=pagination.pages, q=search_query) }}">末页</a>
+                    </li>
+                </ul>
+                
+                <!-- 跳转到指定页 -->
+                <div class="d-flex justify-content-center align-items-center gap-2 mb-3">
+                    <span class="text-muted">跳转到</span>
+                    <input type="number" class="form-control" id="jump-to-page-groups" min="1" max="{{ pagination.pages }}" value="{{ pagination.page }}" style="width: 80px;">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="jumpToPageGroups()">跳转</button>
+                </div>
+            </nav>
+            {% endif %}
+            
             <button type="submit" class="btn btn-danger" onclick="return confirm('确定要删除所有选中的群组吗？')">删除选中</button>
         </form>
         {% else %}
@@ -292,6 +340,33 @@ document.addEventListener('DOMContentLoaded', function() {
                     selectAllGroupsCheckbox.checked = allChecked;
                 }
             });
+        });
+    }
+});
+
+// 分页跳转函数
+function jumpToPageGroups() {
+    const pageInput = document.getElementById('jump-to-page-groups');
+    const pageNum = parseInt(pageInput.value);
+    const searchQuery = "{{ search_query or '' }}";
+    
+    if (pageNum && pageNum > 0) {
+        let url = "{{ url_for('groups') }}?page=" + pageNum;
+        if (searchQuery) {
+            url += "&q=" + encodeURIComponent(searchQuery);
+        }
+        window.location.href = url;
+    }
+}
+
+// 支持Enter键跳转
+document.addEventListener('DOMContentLoaded', function() {
+    const jumpInput = document.getElementById('jump-to-page-groups');
+    if (jumpInput) {
+        jumpInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                jumpToPageGroups();
+            }
         });
     }
 });
