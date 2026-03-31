@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初始化配置 - Telegram 监控系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='js_css/bootstrap.min.css') }}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .setup-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            margin: 20px;
+        }
+        .setup-card h2 {
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .setup-card .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .form-control {
+            border-radius: 8px;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            font-size: 15px;
+            transition: border-color 0.2s;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn-setup {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+        .btn-setup:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-setup:active {
+            transform: translateY(0);
+        }
+        .alert {
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .icon-header {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-card">
+        <div class="text-center">
+            <div class="icon-header">🔧</div>
+            <h2>欢迎使用 TelScan</h2>
+            <p class="subtitle">首次使用，请配置 Telegram API 信息</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('setup') }}" method="POST">
+            <div class="form-group">
+                <label for="api_id">📱 API ID</label>
+                <input type="text" class="form-control" id="api_id" name="api_id" 
+                       placeholder="例如：12345678" required pattern="[0-9]+">
+                <p class="help-text">在 <a href="https://my.telegram.org" target="_blank">my.telegram.org</a> 获取</p>
+            </div>
+
+            <div class="form-group">
+                <label for="api_hash">🔑 API Hash</label>
+                <input type="text" class="form-control" id="api_hash" name="api_hash" 
+                       placeholder="例如：a1b2c3d4e5f6..." required minlength="10">
+                <p class="help-text">在 <a href="https://my.telegram.org" target="_blank">my.telegram.org</a> 获取</p>
+            </div>
+
+            <div class="form-group">
+                <label for="phone_number">📞 手机号码</label>
+                <input type="text" class="form-control" id="phone_number" name="phone_number" 
+                       placeholder="例如：+8612345678901" required pattern="\+[0-9]+">
+                <p class="help-text">带国际区号的手机号，如 +86 开头</p>
+            </div>
+
+            <button type="submit" class="btn-setup">
+                🚀 保存配置并启动
+            </button>
+        </form>
+
+        <p class="text-center mt-3 mb-0" style="font-size: 12px; color: #999;">
+            配置将保存到数据库，重启后无需再次输入
+        </p>
+    </div>
+
+    <script src="{{ url_for('static', filename='js_css/bootstrap.min.js') }}"></script>
+</body>
+</html>

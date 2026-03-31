@@ -32,14 +32,9 @@ services:
     ports:
       - "5000:8033"
     environment:
-      - DOCKER_MODE=true
       - WEB_PORT=8033
       - FLASK_SECRET_KEY=change_me_to_random_string
-      # Telegram 配置（可选，也可通过 Web 界面配置）
-      # - TELEGRAM_API_ID=your_api_id
-      # - TELEGRAM_API_HASH=your_api_hash
-      # - TELEGRAM_PHONE=+8612345678901
-      # 管理员密码（首次启动自动生成，可自定义）
+      # 管理员密码（可选，不设置则自动生成随机密码）
       # - ADMIN_PASSWORD=your_admin_password
 
 volumes:
