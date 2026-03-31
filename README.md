@@ -49,6 +49,8 @@
 `http://你的服务器IP:5000`
 首次打开会自动弹出配置向导，填入 Telegram API 信息和手机号，提交后输入验证码即可。
 <img width="1203" height="597" alt="Snipaste_2026-03-31_19-43-25" src="https://github.com/user-attachments/assets/4334d664-4cab-4c78-97e2-2365a1083c71" />
+<img width="2514" height="1020" alt="image" src="https://github.com/user-attachments/assets/5f6a94e6-6681-4a6f-a88e-64df909381a4" />
+
 4、默认密码查看：
 `docker logs telscan-app 2>&1 | grep "密码"`
 
