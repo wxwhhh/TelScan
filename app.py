@@ -72,7 +72,7 @@ def check_config_exists():
     return config is not None
 
 # 免配置检查的路由
-NO_CONFIG_ALLOWED = {'setup', 'static', 'login', 'logout'}
+NO_CONFIG_ALLOWED = {'setup', 'static', 'login', 'logout', 'verify', 'verify_status'}
 
 @app.before_request
 def redirect_to_setup_if_no_config():
@@ -144,9 +144,47 @@ def setup():
         thread = Thread(target=start_monitoring_async, daemon=True)
         thread.start()
 
-        return redirect(url_for('login'))
+        return redirect(url_for('verify'))
 
     return render_template('setup.html')
+
+@app.route('/verify', methods=['GET', 'POST'])
+def verify():
+    """Telegram 验证码输入页面"""
+    from telegram_monitor import verification_manager, is_running as tg_running
+
+    # 已经验证通过，跳转登录
+    if tg_running or verification_manager.step == 'done':
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        step = request.form.get('step', 'code')
+        value = request.form.get('code' if step == 'code' else 'password', '').strip()
+        if value:
+            verification_manager.submit_code(value)
+            flash('验证码已提交，正在验证...', 'info')
+        return redirect(url_for('verify'))
+
+    # 获取手机号用于显示（隐藏中间几位）
+    config = Config.query.first()
+    phone_display = ''
+    if config and config.phone_number:
+        p = config.phone_number
+        if len(p) > 7:
+            phone_display = p[:3] + '****' + p[-3:]
+        else:
+            phone_display = p
+
+    return render_template('verify.html', phone=phone_display)
+
+@app.route('/verify/status')
+def verify_status():
+    """返回验证状态（AJAX 轮询）"""
+    from telegram_monitor import verification_manager, is_running as tg_running
+    if tg_running:
+        return jsonify({'step': 'done', 'message': 'Telegram 已连接成功！'})
+    status = verification_manager.get_status()
+    return jsonify(status)
 
 @app.route('/')
 @login_required

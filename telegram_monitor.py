@@ -24,9 +24,57 @@ main_loop = None
 client_ready = threading.Event()
 stop_event = threading.Event() #  <-- 新增: 用于控制线程停止
 
-# 性能优化: AC自动机缓存
-keyword_automatons = {}  # {group_id: automaton} 缓存每个群组的AC自动机
-automatons_lock = threading.Lock()  # 线程安全锁
+# === Telegram 验证码/2FA 网页端管理器 ===
+class VerificationManager:
+    """管理 Telegram 登录验证流程，桥接 Web 界面和 Telegram 线程"""
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.step = 'idle'           # idle → code_sent → code_entered → 2fa_required → done
+        self.code_event = threading.Event()
+        self.code_value = None
+        self.error_message = None
+
+    def request_code(self):
+        """Telegram 线程调用：表示验证码已发送，等待用户输入"""
+        self.step = 'code_sent'
+        self.code_event.clear()
+        print("[验证] 验证码已发送，请在网页端输入")
+
+    def request_2fa(self):
+        """Telegram 线程调用：需要两步验证密码"""
+        self.step = '2fa_required'
+        self.code_event.clear()
+        print("[验证] 需要两步验证密码，请在网页端输入")
+
+    def wait_for_code(self, timeout=300):
+        """Telegram 线程调用：等待用户在网页输入验证码"""
+        if self.code_event.wait(timeout=timeout):
+            return self.code_value
+        self.error_message = "等待验证码超时（5分钟）"
+        return None
+
+    def submit_code(self, code):
+        """Web 线程调用：用户提交了验证码"""
+        self.code_value = code
+        self.step = 'code_entered'
+        self.code_event.set()
+
+    def set_done(self):
+        self.step = 'done'
+
+    def set_error(self, msg):
+        self.error_message = msg
+        self.step = 'error'
+
+    def get_status(self):
+        return {
+            'step': self.step,
+            'error': self.error_message
+        }
+
+verification_manager = VerificationManager()
 
 # OCR异步处理: 线程池（最多2个OCR任务并发）
 ocr_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="OCR")
@@ -466,12 +514,32 @@ async def start_client_async(api_id, api_hash, phone_number):
             print("正在尝试连接到Telegram...")
             await client.connect()
             if not await client.is_user_authorized():
+                verification_manager.reset()
                 await client.send_code_request(phone_number)
+                verification_manager.request_code()
+                print("[验证] 等待用户在网页端输入验证码...")
+                code = verification_manager.wait_for_code(timeout=300)
+                if not code:
+                    verification_manager.set_error("等待验证码超时")
+                    print("[错误] 用户未在5分钟内输入验证码")
+                    break
                 try:
-                    await client.sign_in(phone_number, input('请输入telegram发来的验证码: '))
-                except Exception:
-                    await client.sign_in(password=input('请输入两步验证密码: '))
+                    await client.sign_in(phone_number, code)
+                except Exception as e:
+                    # 可能需要两步验证密码
+                    if 'password' in str(e).lower() or '2fa' in str(e).lower():
+                        verification_manager.request_2fa()
+                        print("[验证] 需要两步验证密码，请在网页端输入")
+                        password = verification_manager.wait_for_code(timeout=300)
+                        if not password:
+                            verification_manager.set_error("等待2FA密码超时")
+                            print("[错误] 用户未在5分钟内输入2FA密码")
+                            break
+                        await client.sign_in(password=password)
+                    else:
+                        raise
 
+            verification_manager.set_done()
             is_running = True
             print("Telegram客户端已成功连接并开始监听...")
             client_ready.set()
