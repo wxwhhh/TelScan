@@ -51,8 +51,11 @@
 <img width="1203" height="597" alt="Snipaste_2026-03-31_19-43-25" src="https://github.com/user-attachments/assets/4334d664-4cab-4c78-97e2-2365a1083c71" />
 4、默认密码查看：
 `docker logs telscan-app 2>&1 | grep "密码"`
+
 没找到的可以自己重置密码（将源码中的reset_password.sh下载到宿主机即可）
+
 `bash reset_password.sh # 自动生成随机密码`
+
 `bash reset_password.sh 123456 # 指定密码`
 
 ## 源码搭建
