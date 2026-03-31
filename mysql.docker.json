@@ -1,0 +1,7 @@
+{
+    "host": "mysql",
+    "port": 3306,
+    "user": "telegram1",
+    "password": "telegram&m910",
+    "database": "telegram1"
+}

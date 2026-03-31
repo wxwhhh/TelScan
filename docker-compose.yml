@@ -31,6 +31,8 @@ services:
         condition: service_healthy
     ports:
       - "127.0.0.1:5000:8033"
+    volumes:
+      - ./mysql.docker.json:/app/mysql.json
     environment:
       - WEB_HOST=0.0.0.0
       - WEB_PORT=8033
